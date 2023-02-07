@@ -5,6 +5,7 @@ use actix_web::{
 // TODO: eprintln instead of println for logging?
 
 pub mod types;
+pub mod files;
 
 #[actix_web::main]
 async fn main() {
