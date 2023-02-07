@@ -4,6 +4,8 @@ use actix_web::{
 
 // TODO: eprintln instead of println for logging?
 
+mod project_entry;
+
 #[actix_web::main]
 async fn main() {
     let port = std::env::var("PORT");
