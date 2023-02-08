@@ -3,9 +3,11 @@ use actix_web::{
 };
 
 // TODO: eprintln instead of println for logging?
+// TODO: prevent actix automatically returning json deser error
 
 pub mod types;
 pub mod files;
+pub mod handlers;
 
 #[actix_web::main]
 async fn main() {
@@ -26,6 +28,7 @@ async fn main() {
 
     let server = HttpServer::new(|| {
         App::new()
+            .service(handlers::new)
     }).bind(("127.0.0.1", port));
     if server.is_err() {
         println!("Error binding to port {}: {}\n", port, server.err().unwrap());
