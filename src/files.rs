@@ -10,8 +10,6 @@ use crate::types::{Project, ProjectEntry};
 
 // TODO: use atomicwrite for writing
 // TODO: use tokio async read
-// TODO: comments in tests
-// TODO: borrow information instead of taking ownership
 
 /// prefix file names with "data/"
 macro_rules! path_prefix {
@@ -135,9 +133,10 @@ mod tests {
             ]};
         let res = create(123, data.clone()).await;
 
+        // file that doesn't exist
         assert_eq!(res.unwrap(), true);
 
-        // already existing file
+        // creating already existing file
         let res = create(123, data).await;
         assert_eq!(res.unwrap(), false);
     }
@@ -155,9 +154,12 @@ mod tests {
             timestamp: 123,
             vars: data.vars,
         };
+
+        // reading an existing file
         let res = read("test-read").await;
         assert_eq!(Some(data), res.unwrap());
 
+        // reading file that doesn't exist
         let res = read("test-read-not-existing").await;
         assert_eq!(None, res.unwrap());
     }
@@ -171,10 +173,12 @@ mod tests {
             ]};
         _ = create(123, data.clone()).await.unwrap();
 
+        // updating existing file
         data.vars.push(Var{name: "new-var".to_string(), value: "new".to_string()});
         let res = update(125, data.clone()).await.unwrap();
         assert_eq!(res, true);
 
+        // checking if data was updated
         let read_data = read("test-update").await.unwrap();
         let expected_data = ProjectEntry{
             timestamp: 125,
@@ -182,6 +186,7 @@ mod tests {
         };
         assert_eq!(Some(expected_data), read_data);
 
+        // updating file that doesn't exist
         data.name = "test-update-wrong-name".to_string();
         let res = update(125, data).await.unwrap();
         assert_eq!(false, res);
@@ -189,6 +194,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn delete_file() {
+        // deleting file that doesn't exist
         let res = delete("test-delete").await.unwrap();
         assert_eq!(false, res);
 
@@ -198,6 +204,8 @@ mod tests {
                 Var{name: "port".to_string(), value: "8080".to_string()}
             ]};
         _ = create(123, data.clone()).await.unwrap();
+
+        // deleting file that does exist
         let res = delete("test-delete").await.unwrap();
         assert_eq!(true, res);
     }
