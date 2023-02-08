@@ -7,6 +7,8 @@ use crate::types::{Project, ProjectEntry};
 
 // TODO: use atomicwrite for writing
 // TODO: use tokio async read
+// TODO: comments in tests
+// TODO: borrow information instead of taking ownership
 
 /// prefix file names with "data/"
 macro_rules! path_prefix {
@@ -73,8 +75,31 @@ pub async fn read(project_name: &str) -> Result<Option<ProjectEntry>> {
 }
 
 /// updating already existing project
-pub async fn update(timestamp: u128, project_info: Project) -> Result<()> {
-    todo!();
+/// err indicates fs or json error
+/// false means that file doesn't exist
+pub async fn update(timestamp: u128, project_info: Project) -> Result<bool> {
+    let path = path_prefix!(project_info.name);
+    let file = OpenOptions::new()
+        .truncate(true)
+        .write(true)
+        .open(path);
+
+    if file.is_err() {
+        let err = file.err().unwrap();
+        match err.kind() {
+            std::io::ErrorKind::NotFound => return Ok(false),
+            _ => return Err(err.into()),
+        }
+    }
+
+    let mut file = file.unwrap();
+    let data = ProjectEntry{
+        timestamp,
+        vars: project_info.vars
+    };
+    let data = to_vec(&data)?;
+    file.write_all(&data)?;
+    Ok(true)
 }
 
 /// delete already existing project
@@ -121,5 +146,30 @@ mod tests {
 
         let res = read("test-read-not-existing").await;
         assert_eq!(None, res.unwrap());
+    }
+
+    #[actix_rt::test]
+    async fn update_file() {
+        let mut data = Project{
+            name: "test-update".to_string(),
+            vars: vec![
+                Var{name: "port".to_string(), value: "8080".to_string()}
+            ]};
+        _ = create(123, data.clone()).await.unwrap();
+
+        data.vars.push(Var{name: "new-var".to_string(), value: "new".to_string()});
+        let res = update(125, data.clone()).await.unwrap();
+        assert_eq!(res, true);
+
+        let read_data = read("test-update").await.unwrap();
+        let expected_data = ProjectEntry{
+            timestamp: 125,
+            vars: data.vars.clone(),
+        };
+        assert_eq!(Some(expected_data), read_data);
+
+        data.name = "test-update-wrong-name".to_string();
+        let res = update(125, data).await.unwrap();
+        assert_eq!(false, res);
     }
 }
