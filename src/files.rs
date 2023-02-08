@@ -1,4 +1,7 @@
-use std::{fs::OpenOptions, io::{Write, Read}};
+use std::{
+    fs::{OpenOptions, remove_file},
+    io::{Write, Read}
+};
 use anyhow::Result;
 use serde_json::{
     to_vec, from_str
@@ -103,8 +106,19 @@ pub async fn update(timestamp: u128, project_info: Project) -> Result<bool> {
 }
 
 /// delete already existing project
-pub async fn delete(project_name: &str) -> Result<()> {
-    todo!();
+/// err indicates fs error
+/// false means that it doesn't exit
+pub async fn delete(project_name: &str) -> Result<bool> {
+    let path = path_prefix!(project_name);
+    let res = remove_file(path);
+    if res.is_err() {
+        let err = res.err().unwrap();
+        match err.kind() {
+            std::io::ErrorKind::NotFound => return Ok(false),
+            _ => return Err(err.into()),
+        }
+    }
+    Ok(true)
 }
 
 #[cfg(test)]
@@ -171,5 +185,20 @@ mod tests {
         data.name = "test-update-wrong-name".to_string();
         let res = update(125, data).await.unwrap();
         assert_eq!(false, res);
+    }
+
+    #[actix_rt::test]
+    async fn delete_file() {
+        let res = delete("test-delete").await.unwrap();
+        assert_eq!(false, res);
+
+        let data = Project{
+            name: "test-delete".to_string(),
+            vars: vec![
+                Var{name: "port".to_string(), value: "8080".to_string()}
+            ]};
+        _ = create(123, data.clone()).await.unwrap();
+        let res = delete("test-delete").await.unwrap();
+        assert_eq!(true, res);
     }
 }
