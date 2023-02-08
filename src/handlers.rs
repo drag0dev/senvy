@@ -2,11 +2,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use actix_web::{
     web::Json,
-    post, Responder, HttpResponse
+    get, post, Responder, HttpResponse
 };
 use crate::{
     types::Project,
-    files::create
+    files::{create, read as read_file}
 };
 
 // TODO: thorough testing of err.is() calls
@@ -48,4 +48,21 @@ async fn new(project: Json<Project>) -> impl Responder {
         return HttpResponse::Ok().finish();
     }
     HttpResponse::BadRequest().body("project already exists")
+}
+
+#[get("/read")]
+async fn read(project_name: String) -> impl Responder{
+    let data = read_file(&project_name).await;
+    if data.is_err() {
+        // json is checked when written so it can only be fs error
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    let data = data.unwrap();
+    if data.is_none() {
+        return HttpResponse::BadRequest().body("project does not exist");
+    }
+
+    let data = data.unwrap();
+    HttpResponse::Ok().json(data)
 }

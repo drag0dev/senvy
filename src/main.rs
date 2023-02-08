@@ -29,6 +29,7 @@ async fn main() {
     let server = HttpServer::new(|| {
         App::new()
             .service(handlers::new)
+            .service(handlers::read)
     }).bind(("127.0.0.1", port));
     if server.is_err() {
         println!("Error binding to port {}: {}\n", port, server.err().unwrap());
