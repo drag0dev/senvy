@@ -10,6 +10,19 @@ use crate::{
 };
 
 // TODO: thorough testing of err.is() calls
+// TODO: log internal errors
+
+macro_rules! get_err {
+    ( $x:expr ) => {
+        {
+            $x.as_ref()
+                .err()
+                .unwrap()
+                .chain()
+                .nth(0)
+        }
+    };
+}
 
 #[post("/new")]
 async fn new(project: Json<Project>) -> impl Responder {
@@ -23,13 +36,7 @@ async fn new(project: Json<Project>) -> impl Responder {
     // if there was error during creation check what happened exactly
     if res.is_err() {
         // first element in the chain is the original error
-        let mut err = res
-            .as_ref()
-            .err()
-            .unwrap()
-            .chain();
-
-        let err = err.nth(0);
+        let err = get_err!(res);
         if err.is_none() {
             return HttpResponse::InternalServerError().finish();
         }
