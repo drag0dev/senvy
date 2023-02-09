@@ -15,10 +15,6 @@ use crate::{
     }
 };
 
-// TODO: thorough testing of err.is() calls
-// TODO: log internal errors
-// TODO: malformed json is already declined by middleware
-
 macro_rules! get_err {
     ( $x:expr ) => {
         {
@@ -45,16 +41,12 @@ async fn new(project: Json<Project>) -> impl Responder {
         // first element in the chain is the original error
         let err = get_err!(res);
         if err.is_none() {
-            return HttpResponse::InternalServerError().finish();
+            println!("Error creating a new project: no error");
+        }else {
+            let err = err.unwrap();
+            println!("Error creating a new project: {}", err);
         }
-
-        let err = err.unwrap();
-        if err.is::<std::io::Error>() {
-            return HttpResponse::InternalServerError().finish();
-        }
-        else if err.is::<serde_json::Error>() {
-            return HttpResponse::BadRequest().body("malformed json");
-        }
+        return HttpResponse::InternalServerError().finish();
     }
 
     let res = res.unwrap();
@@ -69,6 +61,13 @@ async fn read(project_name: String) -> impl Responder{
     let data = read_file(&project_name).await;
     if data.is_err() {
         // json is checked when written so it can only be fs error
+        let err = get_err!(data);
+        if err.is_none() {
+            println!("Error reading a project: no error");
+        }else {
+            let err = err.unwrap();
+            println!("Error reading a project: {}", err);
+        }
         return HttpResponse::InternalServerError().finish();
     }
 
@@ -90,6 +89,13 @@ async fn update(project: Json<Project>) -> impl Responder {
     let project = project.into_inner();
     let res = update_file(timestamp, project).await;
     if res.is_err() {
+        let err = get_err!(res);
+        if err.is_none() {
+            println!("Error updating a project: no error");
+        }else {
+            let err = err.unwrap();
+            println!("Error updating a project: {}", err);
+        }
         return HttpResponse::InternalServerError().finish();
     }
     let res = res.unwrap();
@@ -103,6 +109,13 @@ async fn update(project: Json<Project>) -> impl Responder {
 async fn delete(project_name: String) -> impl Responder {
     let res = delete_file(&project_name).await;
     if res.is_err() {
+        let err = get_err!(res);
+        if err.is_none() {
+            println!("Error updating a project: no error");
+        }else {
+            let err = err.unwrap();
+            println!("Error updating a project: {}", err);
+        }
         return HttpResponse::InternalServerError().finish();
     }
     let res = res.unwrap();
