@@ -30,6 +30,7 @@ async fn main() {
         App::new()
             .service(handlers::new)
             .service(handlers::read)
+            .service(handlers::update)
     }).bind(("127.0.0.1", port));
     if server.is_err() {
         println!("Error binding to port {}: {}\n", port, server.err().unwrap());

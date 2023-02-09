@@ -6,11 +6,12 @@ use actix_web::{
 };
 use crate::{
     types::Project,
-    files::{create, read as read_file}
+    files::{create, read as read_file, update as update_file}
 };
 
 // TODO: thorough testing of err.is() calls
 // TODO: log internal errors
+// TODO: malformed json is already declined by middleware
 
 macro_rules! get_err {
     ( $x:expr ) => {
@@ -72,4 +73,22 @@ async fn read(project_name: String) -> impl Responder{
 
     let data = data.unwrap();
     HttpResponse::Ok().json(data)
+}
+
+#[post("/update")]
+async fn update(project: Json<Project>) -> impl Responder {
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap() // safe to just unwrap beacuse UNIX_EPOCH is passed
+        .as_nanos();
+    let project = project.into_inner();
+    let res = update_file(timestamp, project).await;
+    if res.is_err() {
+        return HttpResponse::InternalServerError().finish();
+    }
+    let res = res.unwrap();
+    if !res {
+        return HttpResponse::BadRequest().body("project does not exist");
+    }
+    HttpResponse::Ok().finish()
 }
