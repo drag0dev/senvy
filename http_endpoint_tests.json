@@ -65,6 +65,23 @@
             "request_body": "{\"name\": \"new-project\", \"vars\": [{\"name\": \"new-port\", \"value\": \"8181\"}]}",
             "request_headers": [{"header": "content-type", "value": "application/json"}],
             "response_code": 200
+        },
+        {
+            "description": "deleting project that doesn't exist",
+            "request_endpoint": "delete",
+            "request_method": "DELETE",
+            "request_body": "non-existant-project",
+            "request_headers": [{"header": "content-type", "value": "text/plain"}],
+            "response_code": 400,
+            "response_body": "project does not exist"
+        },
+        {
+            "description": "deleting project that does exist",
+            "request_endpoint": "delete",
+            "request_method": "DELETE",
+            "request_body": "new-project",
+            "request_headers": [{"header": "content-type", "value": "text/plain"}],
+            "response_code": 200
         }
     ]
 }

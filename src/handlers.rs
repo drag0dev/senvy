@@ -2,11 +2,17 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use actix_web::{
     web::Json,
-    get, post, Responder, HttpResponse
+    get, post, delete,
+    Responder, HttpResponse
 };
 use crate::{
     types::Project,
-    files::{create, read as read_file, update as update_file}
+    files::{
+        create,
+        read as read_file,
+        update as update_file,
+        delete as delete_file
+    }
 };
 
 // TODO: thorough testing of err.is() calls
@@ -83,6 +89,19 @@ async fn update(project: Json<Project>) -> impl Responder {
         .as_nanos();
     let project = project.into_inner();
     let res = update_file(timestamp, project).await;
+    if res.is_err() {
+        return HttpResponse::InternalServerError().finish();
+    }
+    let res = res.unwrap();
+    if !res {
+        return HttpResponse::BadRequest().body("project does not exist");
+    }
+    HttpResponse::Ok().finish()
+}
+
+#[delete("/delete")]
+async fn delete(project_name: String) -> impl Responder {
+    let res = delete_file(&project_name).await;
     if res.is_err() {
         return HttpResponse::InternalServerError().finish();
     }
