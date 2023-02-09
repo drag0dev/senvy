@@ -1,0 +1,36 @@
+{
+    "config": {
+        "base_url": "http://localhost",
+        "port": 8080,
+        "pause": 0,
+        "timeout": 5000,
+        "keep_session": false
+    },
+    "tests": [
+        {
+            "description": "reading project that doesn't exist",
+            "request_endpoint": "read",
+            "request_method": "GET",
+            "request_body": "read-test-project",
+            "request_headers": [{"header": "content-type", "value": "text/plain"}],
+            "response_code": 400,
+            "response_body": "project does not exist"
+        },
+        {
+            "description": "creating a new project to read",
+            "request_endpoint": "new",
+            "request_method": "POST",
+            "request_body": "{ \"name\": \"read-test-project\", \"vars\": [ { \"name\": \"port\", \"value\": \"8080\" } ] }",
+            "request_headers": [{"header": "content-type", "value": "applicaton/json"}],
+            "response_code": 200
+        },
+        {
+            "description": "reading existing project",
+            "request_endpoint": "read",
+            "request_method": "GET",
+            "request_headers": [{"header": "content-type", "value": "text/plain"}],
+            "request_body": "read-test-project",
+            "response_code": 200
+        }
+    ]
+}

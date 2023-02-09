@@ -1,0 +1,36 @@
+{
+    "config": {
+        "base_url": "http://localhost",
+        "port": 8080,
+        "pause": 0,
+        "timeout": 5000,
+        "keep_session": false
+    },
+    "tests": [
+        {
+            "description": "deleting project that doesn't exist",
+            "request_endpoint": "delete",
+            "request_method": "DELETE",
+            "request_body": "delete-test-project",
+            "request_headers": [{"header": "content-type", "value": "text/plain"}],
+            "response_code": 400,
+            "response_body": "project does not exist"
+        },
+        {
+            "description": "creating a new project to delete",
+            "request_endpoint": "new",
+            "request_method": "POST",
+            "request_body": "{ \"name\": \"delete-test-project\", \"vars\": [ { \"name\": \"port\", \"value\": \"8080\" } ] }",
+            "request_headers": [{"header": "content-type", "value": "applicaton/json"}],
+            "response_code": 200
+        },
+        {
+            "description": "deleting project that does exist",
+            "request_endpoint": "delete",
+            "request_method": "DELETE",
+            "request_body": "delete-test-project",
+            "request_headers": [{"header": "content-type", "value": "text/plain"}],
+            "response_code": 200
+        }
+    ]
+}
