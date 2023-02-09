@@ -1,5 +1,5 @@
 use std::time::{SystemTime, UNIX_EPOCH};
-
+use log::error;
 use actix_web::{
     web::Json,
     get, post, delete,
@@ -41,10 +41,10 @@ async fn new(project: Json<Project>) -> impl Responder {
         // first element in the chain is the original error
         let err = get_err!(res);
         if err.is_none() {
-            println!("Error creating a new project: no error");
+            error!("Error creating a new project: no error");
         }else {
             let err = err.unwrap();
-            println!("Error creating a new project: {}", err);
+            error!("Error creating a new project: {}", err);
         }
         return HttpResponse::InternalServerError().finish();
     }
@@ -63,10 +63,10 @@ async fn read(project_name: String) -> impl Responder{
         // json is checked when written so it can only be fs error
         let err = get_err!(data);
         if err.is_none() {
-            println!("Error reading a project: no error");
+            error!("Error reading a project: no error");
         }else {
             let err = err.unwrap();
-            println!("Error reading a project: {}", err);
+            error!("Error reading a project: {}", err);
         }
         return HttpResponse::InternalServerError().finish();
     }
@@ -91,10 +91,10 @@ async fn update(project: Json<Project>) -> impl Responder {
     if res.is_err() {
         let err = get_err!(res);
         if err.is_none() {
-            println!("Error updating a project: no error");
+            error!("Error updating a project: no error");
         }else {
             let err = err.unwrap();
-            println!("Error updating a project: {}", err);
+            error!("Error updating a project: {}", err);
         }
         return HttpResponse::InternalServerError().finish();
     }
@@ -111,10 +111,10 @@ async fn delete(project_name: String) -> impl Responder {
     if res.is_err() {
         let err = get_err!(res);
         if err.is_none() {
-            println!("Error updating a project: no error");
+            error!("Error updating a project: no error");
         }else {
             let err = err.unwrap();
-            println!("Error updating a project: {}", err);
+            error!("Error updating a project: {}", err);
         }
         return HttpResponse::InternalServerError().finish();
     }

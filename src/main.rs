@@ -1,12 +1,13 @@
 use actix_web::{
-    App, HttpServer, web, error, HttpResponse
+    App, HttpServer, web, error, HttpResponse, middleware::Logger
 };
-
-// TODO: eprintln instead of println for logging?
+use env_logger::Env;
 
 pub mod types;
 pub mod files;
 pub mod handlers;
+
+const LOGGER_FORMAT: &str = "[%t] %a %s UA:%{User-Agent}i CT:%{Content-Type}i %Dms";
 
 #[actix_web::main]
 async fn main() {
@@ -25,6 +26,8 @@ async fn main() {
         }
     };
 
+    env_logger::init_from_env(Env::default().default_filter_or("info"));
+
     let json_config = web::JsonConfig::default()
         .limit(4096)
         .error_handler(|_, _| {
@@ -33,6 +36,7 @@ async fn main() {
 
     let server = HttpServer::new(move || {
         App::new()
+            .wrap(Logger::new(LOGGER_FORMAT))
             .app_data(json_config.clone())
             .service(handlers::new)
             .service(handlers::read)
