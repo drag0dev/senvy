@@ -1,9 +1,8 @@
 use actix_web::{
-    App, HttpServer
+    App, HttpServer, web, error, HttpResponse
 };
 
 // TODO: eprintln instead of println for logging?
-// TODO: prevent actix automatically returning json deser error
 
 pub mod types;
 pub mod files;
@@ -26,8 +25,15 @@ async fn main() {
         }
     };
 
-    let server = HttpServer::new(|| {
+    let json_config = web::JsonConfig::default()
+        .limit(4096)
+        .error_handler(|_, _| {
+            error::InternalError::from_response("", HttpResponse::BadRequest().body("malformed json")).into()
+        });
+
+    let server = HttpServer::new(move || {
         App::new()
+            .app_data(json_config.clone())
             .service(handlers::new)
             .service(handlers::read)
             .service(handlers::update)
