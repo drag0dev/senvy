@@ -12,7 +12,10 @@ pub struct Config {
     last_version: u128,
 
     /// path to the current file
-    path: Option<String>,
+    path: String,
+
+    /// name of the current project
+    name: String
 }
 
 /// wrapper around write_config just to check if config already exists
@@ -109,19 +112,10 @@ mod tests {
         let conf = Config{
             remote_url: "https://remote-url.test".to_string(),
             last_version: 0,
-            path: None,
+            path: ".env".to_string(),
+            name: "test".to_string()
         };
 
-        write_config(&conf).unwrap();
-        let read_conf = read_config().unwrap();
-
-        assert_eq!(conf, read_conf);
-
-        let conf = Config{
-            remote_url: "https://remote-url.test".to_string(),
-            last_version: 123,
-            path: Some(".env".to_string()),
-        };
         write_config(&conf).unwrap();
         let read_conf = read_config().unwrap();
 
