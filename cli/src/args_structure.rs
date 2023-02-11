@@ -10,9 +10,6 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-    #[command(about = "initialize senvy in your project")]
-    Init {},
-
     #[command(about = "create a new project entry on the server")]
     New {
         #[arg(value_name = "project name")]
