@@ -1,4 +1,3 @@
-use std::ffi::OsString;
 use clap::{Subcommand, Parser};
 
 #[derive(Debug, Parser)]
@@ -20,7 +19,7 @@ pub enum Commands {
         name: String,
         #[arg(value_name = "path to the file with env vars",
             require_equals = true)]
-        file: OsString
+        file: String
     },
 
     #[command(about = "delete project entry on the server")]
@@ -41,7 +40,7 @@ pub enum Commands {
         name: String,
         #[arg(value_name = "path to the file with env vars",
             require_equals = true)]
-        file: OsString
+        file: String
     },
 
     // TODO: implement endpoint

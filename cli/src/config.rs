@@ -1,4 +1,4 @@
-use std::{ffi::OsString, fs::OpenOptions, io::{Write, stdin, stdout, Read}};
+use std::{fs::OpenOptions, io::{Write, stdin, stdout, Read}};
 use serde_derive::{Serialize, Deserialize};
 use anyhow::{Result, Context};
 use serde_json::{from_str, to_vec_pretty};
@@ -12,7 +12,7 @@ pub struct Config {
     last_version: u128,
 
     /// path to the current file
-    path: Option<OsString>,
+    path: Option<String>,
 }
 
 /// wrapper around write_config just to check if config already exists
@@ -71,6 +71,7 @@ pub fn write_config(conf: &Config) -> Result<()> {
     let mut file = OpenOptions::new()
         .create(true)
         .write(true)
+        .truncate(true)
         .open(".senvy")
         .context("creating config file")?;
 
@@ -119,7 +120,7 @@ mod tests {
         let conf = Config{
             remote_url: "https://remote-url.test".to_string(),
             last_version: 123,
-            path: Some(".env".into()),
+            path: Some(".env".to_string()),
         };
         write_config(&conf).unwrap();
         let read_conf = read_config().unwrap();
