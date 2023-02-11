@@ -87,19 +87,30 @@ pub fn write_config(conf: &Config) -> Result<()> {
     Ok(())
 }
 
-pub fn read_config() -> Result<Config> {
-    let mut file = OpenOptions::new()
+pub fn read_config() -> Result<Option<Config>> {
+    let file = OpenOptions::new()
         .read(true)
-        .open(".senvy")
-        .context("opening config file")?;
+        .open(".senvy");
 
+    if file.is_err() {
+        let err = file.as_ref().err().unwrap();
+        match err.kind() {
+            std::io::ErrorKind::NotFound => return Ok(None),
+            _ => {
+                let file = file.context("reading config file");
+                return Err(file.err().unwrap());
+            }
+        };
+    }
+
+    let mut file = file.unwrap();
     let mut buff: String = String::new();
     file.read_to_string(&mut buff)
         .context("reading config file")?;
     let data: Config = from_str(&buff)
         .context("deserializing date from file")?;
 
-    Ok(data)
+    Ok(Some(data))
 }
 
 #[cfg(test)]
@@ -119,7 +130,7 @@ mod tests {
         write_config(&conf).unwrap();
         let read_conf = read_config().unwrap();
 
-        assert_eq!(conf, read_conf);
+        assert_eq!(Some(conf), read_conf);
     }
 
     // create_config has user input thus manually tested
