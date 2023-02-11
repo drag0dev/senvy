@@ -5,7 +5,7 @@ use clap::{Subcommand, Parser};
 #[command(about = "cli for senvy, server thath keeps your env vars", long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
-    command: Commands
+    pub command: Commands
 }
 
 #[derive(Debug, Subcommand)]
