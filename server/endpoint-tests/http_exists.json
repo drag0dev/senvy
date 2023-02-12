@@ -13,8 +13,8 @@
             "request_method": "GET",
             "request_body": "exist-test-project",
             "request_headers": [{"header": "content-type", "value": "text/plain"}],
-            "response_code": 400,
-            "response_body": "project does not exist"
+            "response_code": 200,
+            "response_body": "false"
         },
         {
             "description": "creating a new project to read",
@@ -30,7 +30,8 @@
             "request_method": "GET",
             "request_headers": [{"header": "content-type", "value": "text/plain"}],
             "request_body": "exist-test-project",
-            "response_code": 200
+            "response_code": 200,
+            "response_body": "true"
         }
     ]
 }

@@ -141,7 +141,7 @@ async fn exists(project_name: String) -> impl Responder {
 
     let res = res.unwrap();
     if res.is_none() {
-        return HttpResponse::BadRequest().body("project does not exist");
+        return HttpResponse::Ok().body("false");
     }
-    HttpResponse::Ok().finish()
+    HttpResponse::Ok().body("true")
 }
