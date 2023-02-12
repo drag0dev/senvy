@@ -2,12 +2,15 @@ pub mod args_structure;
 pub mod config;
 pub mod command_handlers;
 pub mod utils;
+pub mod types;
 
 use clap::Parser;
 use args_structure::Commands;
 use command_handlers::*;
 
-// TODO: handle errors
+// TODO: colored
+// TODO: are all prints giving enough info
+// TODO: spell check
 
 #[tokio::main]
 async fn main() {
@@ -27,4 +30,10 @@ async fn main() {
         Commands::Push{name, file, remote_url} => push(config, name, file, remote_url).await,
         Commands::Check{} => check(config).await,
     };
+
+    if res.is_err() {
+        let err = res.err().unwrap();
+        println!("Error encountered while: {}", err);
+        println!("\t{}", err.root_cause());
+    }
 }
