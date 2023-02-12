@@ -1,7 +1,11 @@
-use std::io::{stdin, stdout, Write};
+use std::{
+    io::{stdin, stdout, Write},
+    time::{UNIX_EPOCH, SystemTime}
+};
 use anyhow::{Result, Context};
 use url::Url;
 
+/// confirm with user via stdio
 pub fn confirm(msg: &str) -> Result<bool> {
     let stdin = stdin();
     let mut stdout = stdout();
@@ -26,9 +30,18 @@ pub fn confirm(msg: &str) -> Result<bool> {
     }
 }
 
+/// append endpoint to a given url
 pub fn append_endpoint(url: &String, endpoint: &str) -> Result<String> {
     let mut parsed_url = Url::parse(&url)
-        .context("reading")?;
+        .context("parsing remote url")?;
     parsed_url.set_path(endpoint);
     Ok(parsed_url.as_str().to_string())
+}
+
+/// get current timestamp in nanos
+pub fn get_timestamp() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap() // safe to just unwrap beacuse UNIX_EPOCH is passed
+        .as_nanos()
 }
