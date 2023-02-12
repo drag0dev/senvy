@@ -3,7 +3,6 @@ use actix_web::{
 };
 use env_logger::Env;
 
-pub mod types;
 pub mod files;
 pub mod handlers;
 

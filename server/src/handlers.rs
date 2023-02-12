@@ -5,8 +5,8 @@ use actix_web::{
     get, post, delete,
     Responder, HttpResponse
 };
+use senvy_common::types::Project;
 use crate::{
-    types::Project,
     files::{
         create,
         read as read_file,

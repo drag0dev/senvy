@@ -6,7 +6,7 @@ use anyhow::Result;
 use serde_json::{
     to_vec, from_str
 };
-use crate::types::{Project, ProjectEntry};
+use senvy_common::types::{Project, ProjectEntry};
 
 // TODO: use atomicwrite for writing
 // TODO: use tokio async read
@@ -121,7 +121,7 @@ pub async fn delete(project_name: &str) -> Result<bool> {
 
 #[cfg(test)]
 mod tests {
-    use crate::types::Var;
+    use senvy_common::types::Var;
     use super::*;
 
     #[actix_rt::test]

@@ -1271,6 +1271,16 @@ dependencies = [
  "anyhow",
  "env_logger",
  "log",
+ "senvy_common",
+ "serde",
+ "serde_derive",
+ "serde_json",
+]
+
+[[package]]
+name = "senvy_common"
+version = "0.1.0"
+dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
