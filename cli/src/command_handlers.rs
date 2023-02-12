@@ -1,9 +1,11 @@
 use crate::{
     config::{Config, write_config},
-    utils::{confirm, append_endpoint, get_timestamp}
+    utils::{confirm, append_endpoint, get_timestamp, get_vars}
 };
 use anyhow::{Result, Context};
 use reqwest::StatusCode;
+use senvy_common::types::Project;
+use serde_json::to_string;
 use std::time::Duration;
 
 pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: String) -> Result<()> {
@@ -53,15 +55,24 @@ pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: 
         let conf = Config{
             remote_url: remote_url.clone(),
             last_version: get_timestamp(),
-            path: file,
+            path: file.clone(),
             name: name.clone()
         };
         write_config(&conf)?;
         println!("Successfully made local config file");
 
+        let vars = get_vars(&file)?;
+        let body = Project{
+            name,
+            vars,
+        };
+        let body_str = to_string(&body)
+            .context("serializing project info")?;
+
         // push to the server
         let res = client.post(append_endpoint(&remote_url, "new")?)
-            .body("TODO")
+            .body(body_str)
+            .header("Content-Type", "application/json")
             .send()
             .await
             .context("creating entry on the server")?;

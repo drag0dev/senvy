@@ -2,7 +2,6 @@ pub mod args_structure;
 pub mod config;
 pub mod command_handlers;
 pub mod utils;
-pub mod types;
 
 use clap::Parser;
 use args_structure::Commands;
