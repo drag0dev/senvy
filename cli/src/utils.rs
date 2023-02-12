@@ -1,8 +1,11 @@
 use std::{
-    io::{stdin, stdout, Write},
-    time::{UNIX_EPOCH, SystemTime}
+    io::{stdin, stdout, Write, Read},
+    time::{UNIX_EPOCH, SystemTime},
+    fs::OpenOptions
 };
-use anyhow::{Result, Context};
+use anyhow::{Result, Context, anyhow};
+use dotenv_parser::parse_dotenv;
+use senvy_common::types::Var;
 use url::Url;
 
 /// confirm with user via stdio
@@ -44,4 +47,27 @@ pub fn get_timestamp() -> u128 {
         .duration_since(UNIX_EPOCH)
         .unwrap() // safe to just unwrap beacuse UNIX_EPOCH is passed
         .as_nanos()
+}
+
+/// given the file path to the dot file, parse vars
+pub fn get_vars(file: &str) -> Result<Vec<Var>> {
+    let mut file = OpenOptions::new()
+        .read(true)
+        .open(file)
+        .context("opening env var file")?;
+
+    let mut lines = String::new();
+    file.read_to_string(&mut lines)
+        .context("reading vars")?;
+
+    let mut vars: Vec<Var> = Vec::new();
+    let vars_map = parse_dotenv(&lines)
+        .map_err(|e| anyhow!(e))
+        .context("parsing env vars")?;
+
+    for (key, value) in vars_map.into_iter() {
+        vars.push(Var{name: key, value});
+    }
+
+    Ok(vars)
 }
