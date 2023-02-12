@@ -1,12 +1,16 @@
 pub mod args_structure;
 pub mod config;
 pub mod command_handlers;
+pub mod utils;
 
 use clap::Parser;
 use args_structure::Commands;
 use command_handlers::*;
 
-fn main() {
+// TODO: handle errors
+
+#[tokio::main]
+async fn main() {
     let args = args_structure::Cli::parse();
     let config = config::read_config();
     if config.is_err() {
@@ -16,11 +20,11 @@ fn main() {
 
     let config = config.unwrap();
     let res = match args.command {
-        Commands::Init{name, file, remote_url} => init(config, name, file, remote_url),
-        Commands::New{name, file, remote_url} => new(config, name, file, remote_url),
-        Commands::Delete{name, remote_url} => delete(config, name, remote_url),
-        Commands::Pull{name, remote_url} => pull(config, name, remote_url),
-        Commands::Push{name, file, remote_url} => push(config, name, file, remote_url),
-        Commands::Check{} => check(config),
+        Commands::Init{name, file, remote_url} => init(config, name, file, remote_url).await,
+        Commands::New{name, file, remote_url} => new(config, name, file, remote_url).await,
+        Commands::Delete{name, remote_url} => delete(config, name, remote_url).await,
+        Commands::Pull{name, remote_url} => pull(config, name, remote_url).await,
+        Commands::Push{name, file, remote_url} => push(config, name, file, remote_url).await,
+        Commands::Check{} => check(config).await,
     };
 }
