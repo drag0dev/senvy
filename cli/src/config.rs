@@ -6,16 +6,16 @@ use serde_json::{from_str, to_vec_pretty};
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Config {
     /// full url of the senvy server
-    remote_url: String,
+    pub remote_url: String,
 
     /// used when checking if there are new vars available
-    last_version: u128,
+    pub last_version: u128,
 
     /// path to the current file
-    path: String,
+    pub path: String,
 
     /// name of the current project
-    name: String
+    pub name: String
 }
 
 /// wrapper around write_config just to check if config already exists
