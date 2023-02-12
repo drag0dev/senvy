@@ -42,6 +42,7 @@ async fn main() {
             .service(handlers::read)
             .service(handlers::update)
             .service(handlers::delete)
+            .service(handlers::exists)
     }).bind(("127.0.0.1", port));
     if server.is_err() {
         println!("Error binding to port {}: {}\n", port, server.err().unwrap());

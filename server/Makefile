@@ -5,7 +5,7 @@ clean:
 test: clean
 	cargo test
 
-test-http: test-http-create test-http-read test-http-update test-http-delete
+test-http: test-http-create test-http-read test-http-update test-http-delete test-http-exists
 
 test-http-create: clean
 	resty endpoint-tests/http_create.json
@@ -19,3 +19,5 @@ test-http-update: clean
 test-http-delete: clean
 	resty endpoint-tests/http_delete.json
 
+test-http-exists: clean
+	resty endpoint-tests/http_exists.json

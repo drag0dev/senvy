@@ -124,3 +124,24 @@ async fn delete(project_name: String) -> impl Responder {
     }
     HttpResponse::Ok().finish()
 }
+
+#[get("/exists")]
+async fn exists(project_name: String) -> impl Responder {
+    let res = read_file(&project_name).await;
+    if res.is_err() {
+        let err = get_err!(res);
+        if err.is_none() {
+            error!("Error checking if a project exists: no error");
+        }else {
+            let err = err.unwrap();
+            error!("Error checking if a project exists: {}", err);
+        }
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    let res = res.unwrap();
+    if res.is_none() {
+        return HttpResponse::BadRequest().body("project does not exist");
+    }
+    HttpResponse::Ok().finish()
+}
