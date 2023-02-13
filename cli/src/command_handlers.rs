@@ -1,12 +1,14 @@
 use crate::{
-    config::{Config, write_config},
+    config::{Config, write_config, delete_config},
     utils::{confirm, append_endpoint, get_vars}
 };
-use anyhow::{Result, Context};
+use anyhow::{Result, Context, anyhow};
 use reqwest::StatusCode;
 use senvy_common::types::Project;
 use serde_json::to_string;
 use std::time::Duration;
+
+// TODO: comments, prettier, some potential abstractions into macors/functions
 
 // makes a local config and an entry on the server
 pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: String) -> Result<()> {
@@ -189,8 +191,65 @@ pub async fn new(_: Option<Config>, name: String, file: String, remote_url: Stri
     Ok(())
 }
 
+// delete entry on the server
+// only delete local if user confirms
+// making a delete request based on combination of name and remote_url and config
 pub async fn delete(conf: Option<Config>, name: Option<String>, remote_url: Option<String>) -> Result<()> {
-    todo!();
+    if (name.is_none() || remote_url.is_none()) && conf.is_none() {
+        let err = anyhow!("name and remote url are both required when there is no local config")
+            .context("gathering information about project");
+        return Err(err);
+    }
+
+    // take both provided information and information from config
+    let conf = conf.unwrap();
+    let name = if name.is_some() {
+        name.unwrap()
+    } else {
+        conf.name
+    };
+    let remote_url = if remote_url.is_some() {
+        remote_url.unwrap()
+    } else {
+        conf.remote_url
+    };
+
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(5))
+        .build()
+        .context("building reqwest client")?;
+
+    let endpoint = append_endpoint(&remote_url, "delete")?;
+    let res = client.delete(endpoint)
+        .body(name)
+        .send()
+        .await
+        .context("deleting project entry on the server")?;
+
+    let res_status = res.status();
+    let res_body = res.text()
+        .await
+        .context("reading response body")?;
+    match res_status {
+        StatusCode::OK => println!("Successfully deleted project entry from the server"),
+        StatusCode::BAD_REQUEST => {
+            println!("Error deleting entry, server response: {}", res_body);
+            return Ok(());
+        },
+        _ => {
+        }
+    }
+
+    // deleting local config
+    let proceed = confirm("Do you want to delete local config?")?;
+
+    if proceed {
+        delete_config()?;
+        println!("Successfully deleted local config");
+    }
+
+    Ok(())
 }
 
 pub async fn pull(conf: Option<Config>, name: Option<String>, remote_url: Option<String>)  -> Result<()> {
