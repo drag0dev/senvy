@@ -8,6 +8,7 @@ use senvy_common::types::Project;
 use serde_json::to_string;
 use std::time::Duration;
 
+// makes a local config and an entry on the server
 pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: String) -> Result<()> {
     let mut proceed = true;
 
@@ -46,7 +47,7 @@ pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: 
             },
 
             _ => {
-                println!("Unexpected response from the server, try again");
+                println!("Unexpected response from the server, server response: {}", res_body);
                 return Ok(());
             },
         }
@@ -111,8 +112,81 @@ pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: 
     Ok(())
 }
 
-pub async fn new(conf: Option<Config>, name: String, file: String, remote_url: String) -> Result<()> {
-    todo!();
+// new does not update local config, just makes a new entry on the server
+pub async fn new(_: Option<Config>, name: String, file: String, remote_url: String) -> Result<()> {
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(5))
+        .build()
+        .context("building reqwest client")?;
+
+    // check if project exists
+    let endpoint = append_endpoint(&remote_url, "/exists")?;
+    let res = client.get(endpoint)
+        .body(name.clone())
+        .send()
+        .await
+        .context("checking if entry with the given name exists on the server")?;
+
+    let res_status = res.status();
+    let res_body = res.text()
+        .await
+        .context("reading response body")?;
+
+    match res_status {
+        StatusCode::OK => {
+            if &res_body == "true" {
+                println!("Project entry with name \"{}\" already exists, if you want to overwrite it first delete project entry on the server", &name);
+                return Ok(());
+            }
+        },
+
+        _ => {
+            println!("Unexpected response from the server, server response: {}", res_body);
+            return Ok(());
+        },
+    }
+
+    // parse vars from the file
+    let vars = get_vars(&file)?;
+
+    // body for creating a new entry
+    let body = Project{
+        name,
+        vars,
+    };
+    let body_str = to_string(&body)
+        .context("serializing project info")?;
+
+    let endpoint = append_endpoint(&remote_url, "new")?;
+    let res = client.post(endpoint)
+        .body(body_str)
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .context("creating entry on the server")?;
+
+    let res_status = res.status();
+    let res_body = res.text()
+        .await
+        .context("reading response body")?;
+    match res_status {
+        StatusCode::OK =>
+            println!("Successfully created entry on the server"),
+
+        // it is possible that someone made an entry on the server since we checked
+        StatusCode::BAD_REQUEST => {
+            println!("Error making a new entry, server response: {}", res_body);
+            return Ok(());
+        },
+
+        _ => {
+            println!("Unexpected response from the server, server response: {}", res_body);
+            return Ok(());
+        },
+    }
+
+    Ok(())
 }
 
 pub async fn delete(conf: Option<Config>, name: Option<String>, remote_url: Option<String>) -> Result<()> {
