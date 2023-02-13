@@ -1,4 +1,4 @@
-use std::{fs::OpenOptions, io::{Write, stdin, stdout, Read}};
+use std::{fs::{OpenOptions, remove_file}, io::{Write, stdin, stdout, Read}, os::unix::prelude::OpenOptionsExt};
 use serde_derive::{Serialize, Deserialize};
 use anyhow::{Result, Context};
 use serde_json::{from_str, to_vec_pretty};
@@ -113,6 +113,12 @@ pub fn read_config() -> Result<Option<Config>> {
     Ok(Some(data))
 }
 
+pub fn delete_config() -> Result<()> {
+    remove_file("./.senvy")
+        .context("deleting config file")?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -131,6 +137,23 @@ mod tests {
         let read_conf = read_config().unwrap();
 
         assert_eq!(Some(conf), read_conf);
+    }
+
+
+    #[test]
+    fn delete() {
+        let conf = Config{
+            remote_url: "https://remote-url.test".to_string(),
+            last_version: 0,
+            path: ".env".to_string(),
+            name: "test".to_string()
+        };
+
+        write_config(&conf).unwrap();
+        assert_eq!((), delete_config().unwrap());
+
+        let read_conf = read_config().unwrap();
+        assert_eq!(None, read_conf);
     }
 
     // create_config has user input thus manually tested
