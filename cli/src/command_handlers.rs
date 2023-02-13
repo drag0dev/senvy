@@ -1,6 +1,6 @@
 use crate::{
     config::{Config, write_config},
-    utils::{confirm, append_endpoint, get_timestamp, get_vars}
+    utils::{confirm, append_endpoint, get_vars}
 };
 use anyhow::{Result, Context};
 use reqwest::StatusCode;
@@ -51,19 +51,12 @@ pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: 
             },
         }
 
-        // write config to the file
-        let conf = Config{
-            remote_url: remote_url.clone(),
-            last_version: get_timestamp(),
-            path: file.clone(),
-            name: name.clone()
-        };
-        write_config(&conf)?;
-        println!("Successfully made local config file");
-
+        // parse vars from the file
         let vars = get_vars(&file)?;
+
+        // body for creating a new entry
         let body = Project{
-            name,
+            name: name.clone(),
             vars,
         };
         let body_str = to_string(&body)
@@ -81,16 +74,38 @@ pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: 
         let res_body = res.text()
             .await
             .context("reading response body")?;
+
+        let timestamp;
         match res_status {
-            StatusCode::OK =>
-                println!("Successfully created entry on the server"),
+            StatusCode::OK => {
+                println!("Successfully created entry on the server");
+                timestamp = res_body.parse::<u128>()
+                    .context("parsing timestamp returned from server")?;
+            },
 
             // it is possible that someone made an entry on the server since we checked
-            StatusCode::BAD_REQUEST =>
-                println!("Error making a new entry, server response: {}", res_body),
+            StatusCode::BAD_REQUEST => {
+                println!("Error making a new entry, server response: {}", res_body);
+                return Ok(());
+            },
 
-            _ => println!("Unexpected response from the server, you can try making entry on the server manually using command \"new\"\nserver response: {}", res_body),
+            _ => {
+                println!("Unexpected response from the server, server response: {}", res_body);
+                return Ok(());
+            },
+
         }
+
+        // write config to the file
+        let conf = Config{
+            remote_url,
+            last_version: timestamp,
+            path: file,
+            name,
+        };
+
+        write_config(&conf)?;
+        println!("Successfully made local config file");
     }
 
     Ok(())
