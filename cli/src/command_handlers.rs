@@ -10,6 +10,16 @@ use std::time::Duration;
 
 // TODO: comments, prettier, some potential abstractions into macors/functions
 
+macro_rules! make_client{
+    () => {
+        reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(5))
+            .build()
+            .context("building reqwest client")?
+    };
+}
+
 // makes a local config and an entry on the server
 pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: String) -> Result<()> {
     let mut proceed = true;
@@ -21,11 +31,7 @@ pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: 
 
     if proceed {
         // check if project already exists
-        let client = reqwest::Client::builder()
-            .connect_timeout(Duration::from_secs(10))
-            .timeout(Duration::from_secs(5))
-            .build()
-            .context("building reqwest client")?;
+        let client = make_client!();
 
         let endpoint = append_endpoint(&remote_url, "/exists")?;
 
@@ -117,11 +123,7 @@ pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: 
 
 // new does not update local config, just makes a new entry on the server
 pub async fn new(_: Option<Config>, name: String, file: String, remote_url: String) -> Result<()> {
-    let client = reqwest::Client::builder()
-        .connect_timeout(Duration::from_secs(10))
-        .timeout(Duration::from_secs(5))
-        .build()
-        .context("building reqwest client")?;
+    let client = make_client!();
 
     // check if project exists
     let endpoint = append_endpoint(&remote_url, "/exists")?;
@@ -216,12 +218,7 @@ pub async fn delete(conf: Option<Config>, name: Option<String>, remote_url: Opti
         conf.remote_url
     };
 
-    let client = reqwest::Client::builder()
-        .connect_timeout(Duration::from_secs(10))
-        .timeout(Duration::from_secs(5))
-        .build()
-        .context("building reqwest client")?;
-
+    let client = make_client!();
     let endpoint = append_endpoint(&remote_url, "delete")?;
     let res = client.delete(endpoint)
         .body(name)
@@ -274,11 +271,7 @@ pub async fn pull(conf: Option<Config>, name: Option<String>, remote_url: Option
         conf.as_ref().unwrap().remote_url.to_owned()
     };
 
-    let client = reqwest::Client::builder()
-        .connect_timeout(Duration::from_secs(10))
-        .timeout(Duration::from_secs(5))
-        .build()
-        .context("building reqwest client")?;
+    let client = make_client!();
 
     let endpoint = append_endpoint(&remote_url, "read")?;
     let res = client.get(endpoint)
