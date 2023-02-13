@@ -51,7 +51,7 @@ async fn new(project: Json<Project>) -> impl Responder {
 
     let res = res.unwrap();
     if res {
-        return HttpResponse::Ok().finish();
+        return HttpResponse::Ok().body(format!("{}", timestamp));
     }
     HttpResponse::BadRequest().body("project already exists")
 }
@@ -102,7 +102,7 @@ async fn update(project: Json<Project>) -> impl Responder {
     if !res {
         return HttpResponse::BadRequest().body("project does not exist");
     }
-    HttpResponse::Ok().finish()
+    return HttpResponse::Ok().body(format!("{}", timestamp));
 }
 
 #[delete("/delete")]

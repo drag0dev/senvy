@@ -13,8 +13,7 @@
             "request_method": "POST",
             "request_body": "{ \"name\": \"create-test-project\", \"vars\": [ { \"name\": \"port\", \"value\": \"8080\" } ] }",
             "request_headers": [{"header": "content-type", "value": "applicaton/json"}],
-            "response_code": 200,
-            "response_body": ""
+            "response_code": 200
         },
         {
             "description": "creating a project that already exists",
