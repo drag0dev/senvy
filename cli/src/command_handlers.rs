@@ -4,8 +4,8 @@ use crate::{
 };
 use anyhow::{Result, Context, anyhow};
 use reqwest::StatusCode;
-use senvy_common::types::Project;
-use serde_json::to_string;
+use senvy_common::types::{Project, ProjectEntry};
+use serde_json::{to_string, from_str};
 use std::time::Duration;
 
 // TODO: comments, prettier, some potential abstractions into macors/functions
@@ -254,8 +254,78 @@ pub async fn delete(conf: Option<Config>, name: Option<String>, remote_url: Opti
     Ok(())
 }
 
+// pull entry from the server
+// confirm overwriting with user
 pub async fn pull(conf: Option<Config>, name: Option<String>, remote_url: Option<String>)  -> Result<()> {
-    todo!();
+    if (name.is_none() || remote_url.is_none()) && conf.is_none() {
+        let err = anyhow!("name and remote url are both required when there is no local config")
+            .context("gathering information about project");
+        return Err(err);
+    }
+
+    let name = if name.is_some() {
+        name.unwrap()
+    } else {
+        conf.as_ref().unwrap().name.to_owned()
+    };
+    let remote_url = if remote_url.is_some() {
+        remote_url.unwrap()
+    } else {
+        conf.as_ref().unwrap().remote_url.to_owned()
+    };
+
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(5))
+        .build()
+        .context("building reqwest client")?;
+
+    let endpoint = append_endpoint(&remote_url, "read")?;
+    let res = client.get(endpoint)
+        .body(name.clone())
+        .send()
+        .await
+        .context("pulling entry from the server")?;
+
+    let res_status = res.status();
+    let res_body = res.text()
+        .await
+        .context("reading response body")?;
+
+    match res_status {
+        StatusCode::OK => {},
+        StatusCode::BAD_REQUEST => {
+            println!("Error getting entry from the server: {}", res_body);
+            return Ok(());
+        },
+        _ => {
+                println!("Unexpected response from the server, server response: {}", res_body);
+                return Ok(());
+        },
+    }
+
+    if conf.is_some() {
+        let proceed = confirm("Local config already exists, do you want to overwrite it?")?;
+        if !proceed {
+            return Ok(());
+        }
+    }
+
+    // write a new config file
+    let entry: ProjectEntry = from_str(&res_body)
+        .context("deserializing config")?;
+
+    let config = Config{
+        remote_url,
+        last_version: entry.timestamp,
+        name,
+        path: entry.path
+    };
+
+    write_config(&config)?;
+    println!("Successfully pulled config");
+
+    Ok(())
 }
 
 pub async fn push(conf: Option<Config>, name: Option<String>, file: Option<String>, remote_url: Option<String>) -> Result<()> {
