@@ -322,7 +322,57 @@ pub async fn pull(conf: Option<Config>, name: Option<String>, remote_url: Option
 }
 
 pub async fn push(conf: Option<Config>, name: Option<String>, file: Option<String>, remote_url: Option<String>) -> Result<()> {
-    todo!();
+    if (file.is_none() || remote_url.is_none()) && conf.is_none() {
+        let err = anyhow!("name and remote url are both required when there is no local config")
+            .context("gathering information about project");
+        return Err(err);
+    }
+
+    let name = if name.is_some() {
+        name.unwrap()
+    } else {
+        conf.as_ref().unwrap().name.to_owned()
+    };
+    let remote_url = if remote_url.is_some() {
+        remote_url.unwrap()
+    } else {
+        conf.as_ref().unwrap().remote_url.to_owned()
+    };
+
+    let file = if file.is_some() {
+        file.unwrap()
+    } else {
+        conf.as_ref().unwrap().path.to_owned()
+    };
+
+    let vars = get_vars(&file)?;
+    let body = Project{
+        name,
+        path: file,
+        vars
+    };
+    let body_str = to_string(&body)
+        .context("serializing project info")?;
+
+    let client = make_client!();
+    let endpoint = append_endpoint(&remote_url, "update")?;
+    let res = client.post(endpoint)
+        .body(body_str)
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .context("updating entry on the server")?;
+
+    let res_status = res.status();
+    let res_body = res.text()
+        .await
+        .context("reading response body")?;
+    match res_status {
+        StatusCode::OK => println!("Successfully updated entry on the server"),
+        StatusCode::BAD_REQUEST => println!("Error making a new entry, server response: {}", res_body),
+        _ => println!("Unexpected response from the server, server response: {}", res_body),
+    }
+    Ok(())
 }
 
 pub async fn check(conf: Option<Config>) -> Result<()> {
