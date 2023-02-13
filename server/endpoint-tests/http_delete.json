@@ -20,7 +20,7 @@
             "description": "creating a new project to delete",
             "request_endpoint": "new",
             "request_method": "POST",
-            "request_body": "{ \"name\": \"delete-test-project\", \"vars\": [ { \"name\": \"port\", \"value\": \"8080\" } ] }",
+            "request_body": "{ \"name\": \"delete-test-project\", \"vars\": [ { \"name\": \"port\", \"value\": \"8080\" } ], \"path\": \"./.env\" }",
             "request_headers": [{"header": "content-type", "value": "applicaton/json"}],
             "response_code": 200
         },

@@ -43,7 +43,8 @@ pub async fn create(timestamp: u128, project_info: Project) -> Result<bool> {
     // serialize
     let data = ProjectEntry {
         timestamp,
-        vars: project_info.vars
+        vars: project_info.vars,
+        path: project_info.path,
     };
     let data = to_vec(&data)?;
 
@@ -96,7 +97,8 @@ pub async fn update(timestamp: u128, project_info: Project) -> Result<bool> {
     let mut file = file.unwrap();
     let data = ProjectEntry{
         timestamp,
-        vars: project_info.vars
+        vars: project_info.vars,
+        path: project_info.path
     };
     let data = to_vec(&data)?;
     file.write_all(&data)?;
@@ -130,7 +132,9 @@ mod tests {
             name: "test-name".to_string(),
             vars: vec![
                 Var{name: "port".to_string(), value: "8080".to_string()}
-            ]};
+            ],
+            path: "./.env".to_string()
+        };
         let res = create(123, data.clone()).await;
 
         // file that doesn't exist
@@ -147,12 +151,15 @@ mod tests {
             name: "test-read".to_string(),
             vars: vec![
                 Var{name: "port".to_string(), value: "8080".to_string()}
-            ]};
+            ],
+            path: "./.env".to_string()
+        };
         _ = create(123, data.clone()).await.unwrap();
 
         let data = ProjectEntry{
             timestamp: 123,
             vars: data.vars,
+            path: "./.env".to_string()
         };
 
         // reading an existing file
@@ -170,7 +177,9 @@ mod tests {
             name: "test-update".to_string(),
             vars: vec![
                 Var{name: "port".to_string(), value: "8080".to_string()}
-            ]};
+            ],
+            path: "./.env".to_string()
+        };
         _ = create(123, data.clone()).await.unwrap();
 
         // updating existing file
@@ -183,6 +192,7 @@ mod tests {
         let expected_data = ProjectEntry{
             timestamp: 125,
             vars: data.vars.clone(),
+            path: "./.env".to_string()
         };
         assert_eq!(Some(expected_data), read_data);
 
@@ -202,7 +212,9 @@ mod tests {
             name: "test-delete".to_string(),
             vars: vec![
                 Var{name: "port".to_string(), value: "8080".to_string()}
-            ]};
+            ],
+            path: "./.env".to_string()
+        };
         _ = create(123, data.clone()).await.unwrap();
 
         // deleting file that does exist

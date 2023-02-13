@@ -61,6 +61,7 @@ pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: 
         let body = Project{
             name: name.clone(),
             vars,
+            path: file.clone(),
         };
         let body_str = to_string(&body)
             .context("serializing project info")?;
@@ -156,6 +157,7 @@ pub async fn new(_: Option<Config>, name: String, file: String, remote_url: Stri
     let body = Project{
         name,
         vars,
+        path: file
     };
     let body_str = to_string(&body)
         .context("serializing project info")?;

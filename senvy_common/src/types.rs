@@ -5,6 +5,7 @@ use serde_derive::{Serialize, Deserialize};
 pub struct Project{
     /// project name
     pub name: String,
+    pub path: String,
     pub vars: Vec<Var>,
 }
 
@@ -14,6 +15,7 @@ pub struct Project{
 pub struct ProjectEntry {
     /// timestamp of the last change
     pub timestamp: u128,
+    pub path: String,
     pub vars: Vec<Var>,
 }
 
