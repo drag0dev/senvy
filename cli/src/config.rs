@@ -1,4 +1,7 @@
-use std::{fs::{OpenOptions, remove_file}, io::{Write, stdin, stdout, Read}, os::unix::prelude::OpenOptionsExt};
+use std::{
+    fs::{OpenOptions, remove_file},
+    io::{Write, Read}
+};
 use serde_derive::{Serialize, Deserialize};
 use anyhow::{Result, Context};
 use serde_json::{from_str, to_vec_pretty};
@@ -16,57 +19,6 @@ pub struct Config {
 
     /// name of the current project
     pub name: String
-}
-
-/// wrapper around write_config just to check if config already exists
-/// true if config file was written, otherwise false
-// in case there is config present ask before overwriting
-pub fn create_config(conf: &Config) -> Result<()> {
-    let file = OpenOptions::new()
-        .read(true)
-        .open(".senvy");
-
-    let mut found = true;
-    if file.is_err() {
-        if file.as_ref().err().unwrap().kind() == std::io::ErrorKind::NotFound {
-            found = false;
-        }else {
-            file.context("opening config file")?;
-        }
-    }
-
-    // if config file already exist check if user wants to overwrite it
-    if found {
-        let stdin = stdin();
-        let mut stdout = stdout();
-        let mut buff: String = String::new();
-        loop {
-            print!("Config file already exists, do you want to continue (y/n): ");
-            stdout.flush().context("flushing message to the stdout")?;
-
-            buff.clear();
-            stdin.read_line(&mut buff).context("reading user input")?;
-
-            if buff.len() == 0 {
-                continue;
-            }else {
-                buff = buff.to_uppercase();
-
-                // if not, just return
-                if buff.chars().nth(0).unwrap() == 'N' {
-                    println!("Not writing config file");
-                    return Ok(());
-
-                // if yes write config
-                }else {
-                    break;
-                }
-            }
-        }
-    }
-
-    write_config(&conf).context("writing config")?;
-    Ok(())
 }
 
 /// writing config to ".senvy" in current working directory
@@ -139,7 +91,6 @@ mod tests {
         assert_eq!(Some(conf), read_conf);
     }
 
-
     #[test]
     fn delete() {
         let conf = Config{
@@ -155,6 +106,4 @@ mod tests {
         let read_conf = read_config().unwrap();
         assert_eq!(None, read_conf);
     }
-
-    // create_config has user input thus manually tested
 }

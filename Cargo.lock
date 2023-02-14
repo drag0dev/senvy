@@ -360,7 +360,6 @@ dependencies = [
  "clap",
  "dotenv-parser",
  "reqwest",
- "senvy",
  "senvy_common",
  "serde",
  "serde_derive",

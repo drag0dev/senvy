@@ -7,10 +7,6 @@ use clap::Parser;
 use args_structure::Commands;
 use command_handlers::*;
 
-// TODO: colored
-// TODO: are all prints giving enough info
-// TODO: spell check
-
 #[tokio::main]
 async fn main() {
     let args = args_structure::Cli::parse();

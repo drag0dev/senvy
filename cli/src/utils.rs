@@ -1,6 +1,5 @@
 use std::{
     io::{stdin, stdout, Write, Read},
-    time::{UNIX_EPOCH, SystemTime},
     fs::OpenOptions
 };
 use anyhow::{Result, Context, anyhow};
@@ -39,14 +38,6 @@ pub fn append_endpoint(url: &String, endpoint: &str) -> Result<String> {
         .context("parsing remote url")?;
     parsed_url.set_path(endpoint);
     Ok(parsed_url.as_str().to_string())
-}
-
-/// get current timestamp in nanos
-pub fn get_timestamp() -> u128 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap() // safe to just unwrap beacuse UNIX_EPOCH is passed
-        .as_nanos()
 }
 
 /// given the file path to the dot file, parse vars
