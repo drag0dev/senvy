@@ -375,6 +375,60 @@ pub async fn push(conf: Option<Config>, name: Option<String>, file: Option<Strin
     Ok(())
 }
 
+// check if there is a new version by puling entry for the current project
 pub async fn check(conf: Option<Config>) -> Result<()> {
-    todo!();
+    if conf.is_none() {
+        println!("Senvy is not initialized in the current directory");
+        return Ok(());
+    }
+    let conf = conf.unwrap();
+
+    let client = make_client!();
+    let endpoint = append_endpoint(&conf.remote_url, "read")?;
+    let res = client.get(endpoint)
+        .body(conf.name.clone())
+        .send()
+        .await
+        .context("checking entry on the server")?;
+
+    let res_status = res.status();
+    let res_body = res.text()
+        .await
+        .context("reading response body")?;
+
+    match res_status {
+        StatusCode::OK => {},
+        StatusCode::BAD_REQUEST => {
+            println!("Error getting entry from the server: {}", res_body);
+            return Ok(());
+        },
+        _ => {
+                println!("Unexpected response from the server, server response: {}", res_body);
+                return Ok(());
+        },
+    }
+
+    let new_conf: ProjectEntry = from_str(&res_body)
+        .context("deserializing config")?;
+
+    if new_conf.timestamp > conf.last_version {
+        println!("New version avaiable");
+        let proceed = confirm("Do you want to update local config?")?;
+        if proceed {
+            let new_conf = Config {
+                remote_url: conf.remote_url,
+                last_version: new_conf.timestamp,
+                path: new_conf.path,
+                name: conf.name,
+            };
+            write_config(&new_conf)?;
+            println!("Successfully updated local config");
+        } else {
+            println!("Not updating local config");
+        }
+    } else {
+        println!("Everything is up to date")
+    }
+
+    Ok(())
 }
