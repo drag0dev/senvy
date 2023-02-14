@@ -8,8 +8,6 @@ use senvy_common::types::{Project, ProjectEntry};
 use serde_json::{to_string, from_str};
 use std::time::Duration;
 
-// TODO: comments, prettier, some potential abstractions into macors/functions
-
 macro_rules! make_client{
     () => {
         reqwest::Client::builder()
@@ -32,15 +30,14 @@ pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: 
     if proceed {
         // check if project already exists
         let client = make_client!();
-
         let endpoint = append_endpoint(&remote_url, "/exists")?;
-
         let res = client.get(endpoint)
             .body(name.clone())
             .send()
             .await
             .context("checking if entry with the given name exists on the server")?;
 
+        // check the results
         let res_status = res.status();
         let res_body = res.text()
             .await
@@ -53,7 +50,6 @@ pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: 
                     return Ok(());
                 }
             },
-
             _ => {
                 println!("Unexpected response from the server, server response: {}", res_body);
                 return Ok(());
@@ -85,6 +81,7 @@ pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: 
             .await
             .context("reading response body")?;
 
+        // if creation of the entry on the server was successfull get back the timestamp
         let timestamp;
         match res_status {
             StatusCode::OK => {
@@ -92,18 +89,15 @@ pub async fn init(conf: Option<Config>, name: String, file: String, remote_url: 
                 timestamp = res_body.parse::<u128>()
                     .context("parsing timestamp returned from server")?;
             },
-
             // it is possible that someone made an entry on the server since we checked
             StatusCode::BAD_REQUEST => {
                 println!("Error making a new entry, server response: {}", res_body);
                 return Ok(());
             },
-
             _ => {
                 println!("Unexpected response from the server, server response: {}", res_body);
                 return Ok(());
             },
-
         }
 
         // write config to the file
@@ -133,6 +127,7 @@ pub async fn new(_: Option<Config>, name: String, file: String, remote_url: Stri
         .await
         .context("checking if entry with the given name exists on the server")?;
 
+    // check the results
     let res_status = res.status();
     let res_body = res.text()
         .await
@@ -145,7 +140,6 @@ pub async fn new(_: Option<Config>, name: String, file: String, remote_url: Stri
                 return Ok(());
             }
         },
-
         _ => {
             println!("Unexpected response from the server, server response: {}", res_body);
             return Ok(());
@@ -164,6 +158,7 @@ pub async fn new(_: Option<Config>, name: String, file: String, remote_url: Stri
     let body_str = to_string(&body)
         .context("serializing project info")?;
 
+    // create a new entry
     let endpoint = append_endpoint(&remote_url, "new")?;
     let res = client.post(endpoint)
         .body(body_str)
@@ -172,6 +167,7 @@ pub async fn new(_: Option<Config>, name: String, file: String, remote_url: Stri
         .await
         .context("creating entry on the server")?;
 
+    // check the results
     let res_status = res.status();
     let res_body = res.text()
         .await
@@ -179,13 +175,11 @@ pub async fn new(_: Option<Config>, name: String, file: String, remote_url: Stri
     match res_status {
         StatusCode::OK =>
             println!("Successfully created entry on the server"),
-
         // it is possible that someone made an entry on the server since we checked
         StatusCode::BAD_REQUEST => {
             println!("Error making a new entry, server response: {}", res_body);
             return Ok(());
         },
-
         _ => {
             println!("Unexpected response from the server, server response: {}", res_body);
             return Ok(());
@@ -218,6 +212,7 @@ pub async fn delete(conf: Option<Config>, name: Option<String>, remote_url: Opti
         conf.remote_url
     };
 
+    // send delete request
     let client = make_client!();
     let endpoint = append_endpoint(&remote_url, "delete")?;
     let res = client.delete(endpoint)
@@ -226,6 +221,7 @@ pub async fn delete(conf: Option<Config>, name: Option<String>, remote_url: Opti
         .await
         .context("deleting project entry on the server")?;
 
+    // check the results
     let res_status = res.status();
     let res_body = res.text()
         .await
@@ -237,7 +233,9 @@ pub async fn delete(conf: Option<Config>, name: Option<String>, remote_url: Opti
             return Ok(());
         },
         _ => {
-        }
+            println!("Unexpected response from the server, server response: {}", res_body);
+            return Ok(());
+        },
     }
 
     // deleting local config
@@ -260,6 +258,7 @@ pub async fn pull(conf: Option<Config>, name: Option<String>, remote_url: Option
         return Err(err);
     }
 
+    // take both provided information and information from config
     let name = if name.is_some() {
         name.unwrap()
     } else {
@@ -271,8 +270,8 @@ pub async fn pull(conf: Option<Config>, name: Option<String>, remote_url: Option
         conf.as_ref().unwrap().remote_url.to_owned()
     };
 
+    // send read request
     let client = make_client!();
-
     let endpoint = append_endpoint(&remote_url, "read")?;
     let res = client.get(endpoint)
         .body(name.clone())
@@ -280,6 +279,7 @@ pub async fn pull(conf: Option<Config>, name: Option<String>, remote_url: Option
         .await
         .context("pulling entry from the server")?;
 
+    // check the results
     let res_status = res.status();
     let res_body = res.text()
         .await
@@ -328,6 +328,7 @@ pub async fn push(conf: Option<Config>, name: Option<String>, file: Option<Strin
         return Err(err);
     }
 
+    // take both provided information and information from config
     let name = if name.is_some() {
         name.unwrap()
     } else {
@@ -354,6 +355,7 @@ pub async fn push(conf: Option<Config>, name: Option<String>, file: Option<Strin
     let body_str = to_string(&body)
         .context("serializing project info")?;
 
+    // send the update request
     let client = make_client!();
     let endpoint = append_endpoint(&remote_url, "update")?;
     let res = client.post(endpoint)
@@ -383,6 +385,7 @@ pub async fn check(conf: Option<Config>) -> Result<()> {
     }
     let conf = conf.unwrap();
 
+    // send the read request
     let client = make_client!();
     let endpoint = append_endpoint(&conf.remote_url, "read")?;
     let res = client.get(endpoint)
@@ -391,6 +394,7 @@ pub async fn check(conf: Option<Config>) -> Result<()> {
         .await
         .context("checking entry on the server")?;
 
+    // check the results
     let res_status = res.status();
     let res_body = res.text()
         .await
