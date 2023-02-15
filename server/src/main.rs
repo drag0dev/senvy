@@ -5,6 +5,7 @@ use env_logger::Env;
 
 pub mod files;
 pub mod handlers;
+pub mod queue;
 
 const LOGGER_FORMAT: &str = "[%t] %a %s UA:%{User-Agent}i CT:%{Content-Type}i %Dms";
 
