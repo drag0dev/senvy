@@ -3,3 +3,4 @@ pub mod task;
 
 pub use queue::FileTaskQueue;
 pub use task::Task;
+pub use task::FileTask;

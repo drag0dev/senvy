@@ -28,6 +28,13 @@ pub struct Task {
 }
 
 impl Task {
+    pub fn new(task: FileTask, chan: Sender<FileTaskReturnType>) -> Self {
+        Task {
+            task,
+            chan: Some(chan),
+        }
+    }
+
     pub async fn execute(&mut self) {
         // always Some
         let chan = take(&mut self.chan).unwrap();
