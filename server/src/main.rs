@@ -1,9 +1,10 @@
-use std::sync::Arc;
+use std::{sync::Arc, thread};
 use actix_web::{
     App, HttpServer, web, error, HttpResponse, middleware::Logger,
     web::Data,
 };
 use env_logger::Env;
+use tokio::runtime::Builder;
 
 pub mod files;
 pub mod handlers;
@@ -13,8 +14,7 @@ pub mod queue;
 
 const LOGGER_FORMAT: &str = "[%t] %a %s UA:%{User-Agent}i CT:%{Content-Type}i %Dms";
 
-#[actix_web::main]
-async fn main() {
+fn main() {
     let port = std::env::var("PORT");
     let port = match port {
         Ok(p) => {
@@ -32,23 +32,34 @@ async fn main() {
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
-    let job_queue = Arc::new(queue::FileTaskQueue::new());
-
-    // TODO: is it possible to have a hard thread instead of a green thread? (separate async runtime instance for a hard thread)
-    // thread which consumes tasks and executes them
-    let job_queue_worker = job_queue.clone();
-    let worker = tokio::spawn(async move {
-        let job_queue = job_queue_worker.clone();
-        while let Some(mut task) = job_queue.wait_for_job() {
-            (&mut task).execute().await;
-        }
-    });
-
     let json_config = web::JsonConfig::default()
         .limit(4096)
         .error_handler(|_, _| {
             error::InternalError::from_response("", HttpResponse::BadRequest().body("malformed json")).into()
         });
+
+    let job_queue = Arc::new(queue::FileTaskQueue::new());
+
+    // worker thread
+    let job_queue_worker = job_queue.clone();
+    let worker_thread = thread::spawn(move || {
+        let job_queue = job_queue_worker;
+        // worker thread
+        let worker_runtime = Builder::new_current_thread()
+            .worker_threads(1)
+            .enable_io()
+            .build()
+            .unwrap();
+
+        let worker_runtime_handle = worker_runtime.handle();
+        let worker = worker_runtime_handle.spawn(async move {
+            let job_queue = job_queue;
+            while let Some(mut task) = job_queue.wait_for_job() {
+                (&mut task).execute().await;
+            }
+        });
+        _ = worker_runtime.block_on(worker);
+    });
 
     let job_queue_server = job_queue.clone();
     let server = HttpServer::new(move || {
@@ -68,17 +79,19 @@ async fn main() {
         return;
     }
 
-    println!("Server running on port {}", port);
     let server = server.unwrap();
-    let res = server.run().await;
-    if res.is_err() {
-        println!("Error while running the server: {}\n", res.err().unwrap());
-        println!("Exiting...");
-    }
+    println!("Server running on port {}", port);
 
-    // the only way for this to be executed is for server to error
+    let actix_runtime = Builder::new_multi_thread()
+        .enable_all()
+        .thread_name("actix-runtime")
+        .build()
+        .unwrap();
+
+    let server_future = server.run();
+    _ = actix_runtime.block_on(server_future);
+
     // kills the worker thread
     job_queue.end();
-
-    _ = worker.await;
+    _ = worker_thread.join();
 }
