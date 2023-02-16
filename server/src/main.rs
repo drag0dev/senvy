@@ -1,11 +1,15 @@
+use std::sync::Arc;
 use actix_web::{
-    App, HttpServer, web, error, HttpResponse, middleware::Logger
+    App, HttpServer, web, error, HttpResponse, middleware::Logger,
+    web::Data,
 };
 use env_logger::Env;
 
 pub mod files;
 pub mod handlers;
 pub mod queue;
+
+// TODO: worker threads stays behind in case of interrupting server
 
 const LOGGER_FORMAT: &str = "[%t] %a %s UA:%{User-Agent}i CT:%{Content-Type}i %Dms";
 
@@ -28,16 +32,31 @@ async fn main() {
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
+    let job_queue = Arc::new(queue::FileTaskQueue::new());
+
+    // TODO: is it possible to have a hard thread instead of a green thread? (separate async runtime instance for a hard thread)
+    // thread which consumes tasks and executes them
+    let job_queue_worker = job_queue.clone();
+    let worker = tokio::spawn(async move {
+        let job_queue = job_queue_worker.clone();
+        while let Some(mut task) = job_queue.wait_for_job() {
+            (&mut task).execute().await;
+        }
+    });
+
     let json_config = web::JsonConfig::default()
         .limit(4096)
         .error_handler(|_, _| {
             error::InternalError::from_response("", HttpResponse::BadRequest().body("malformed json")).into()
         });
 
+    let job_queue_server = job_queue.clone();
     let server = HttpServer::new(move || {
+        let job_queue = job_queue_server.clone();
         App::new()
             .wrap(Logger::new(LOGGER_FORMAT))
             .app_data(json_config.clone())
+            .app_data(Data::new(Arc::clone(&job_queue)))
             .service(handlers::new)
             .service(handlers::read)
             .service(handlers::update)
@@ -56,4 +75,10 @@ async fn main() {
         println!("Error while running the server: {}\n", res.err().unwrap());
         println!("Exiting...");
     }
+
+    // the only way for this to be executed is for server to error
+    // kills the worker thread
+    job_queue.end();
+
+    _ = worker.await;
 }

@@ -1,18 +1,20 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    time::{SystemTime, UNIX_EPOCH},
+    sync::Arc
+};
 use log::error;
 use actix_web::{
-    web::Json,
+    web::{Json, Data},
     get, post, delete,
     Responder, HttpResponse
 };
 use senvy_common::types::Project;
-use crate::{
-    files::{
-        create,
-        read as read_file,
-        update as update_file,
-        delete as delete_file
-    }
+use tokio::sync::oneshot;
+use crate::queue::{
+    FileTaskQueue,
+    Task,
+    FileTask,
+    task::FileTaskReturnType
 };
 
 macro_rules! get_err {
@@ -27,14 +29,48 @@ macro_rules! get_err {
     };
 }
 
+// unreachable in match for a specific task result is used to uncover mismatched result types
+/// arguments -> job queue, task type, task return type,
+/// and the rest of the provided arguments are for the underlying file function
+macro_rules! execute_task {
+    ( $queue:ident, $task_type:ident, $task_return_type:ident, $($arg:ident),+ ) => {
+        {
+            // making a new task
+            let (tx, rx) = oneshot::channel();
+            let task = Task::new(
+                FileTask::$task_type($($arg),+), tx);
+
+            // pushing a new task into the queue and awaiting the result
+            $queue.push_task(task);
+            let res = rx.await;
+
+            // was there error receiving result
+            let res = match res {
+                Ok(res) => res,
+                Err(_) => {
+                    return HttpResponse::InternalServerError().finish();
+                }
+            };
+
+            // match the result into the desired
+            let res = match res {
+                FileTaskReturnType::$task_return_type(r) => {r},
+                _ => unreachable!(),
+            };
+            res
+        }
+    }
+}
+
 #[post("/new")]
-async fn new(project: Json<Project>) -> impl Responder {
+async fn new(project: Json<Project>, queue: Data<Arc<FileTaskQueue>>) -> impl Responder {
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap() // safe to just unwrap beacuse UNIX_EPOCH is passed
         .as_nanos();
     let project = project.into_inner();
-    let res = create(timestamp, project).await;
+
+    let res = execute_task!(queue, CreateConfig, CreateReturn, timestamp, project);
 
     // if there was error during creation check what happened exactly
     if res.is_err() {
@@ -57,8 +93,8 @@ async fn new(project: Json<Project>) -> impl Responder {
 }
 
 #[get("/read")]
-async fn read(project_name: String) -> impl Responder{
-    let data = read_file(&project_name).await;
+async fn read(project_name: String, queue: Data<Arc<FileTaskQueue>>) -> impl Responder{
+    let data = execute_task!(queue, ReadConfig, ReadReturn, project_name);
     if data.is_err() {
         // json is checked when written so it can only be fs error
         let err = get_err!(data);
@@ -81,13 +117,14 @@ async fn read(project_name: String) -> impl Responder{
 }
 
 #[post("/update")]
-async fn update(project: Json<Project>) -> impl Responder {
+async fn update(project: Json<Project>, queue: Data<Arc<FileTaskQueue>>) -> impl Responder {
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap() // safe to just unwrap beacuse UNIX_EPOCH is passed
         .as_nanos();
     let project = project.into_inner();
-    let res = update_file(timestamp, project).await;
+
+    let res = execute_task!(queue, UpdateConfig, UpdateReturn, timestamp, project);
     if res.is_err() {
         let err = get_err!(res);
         if err.is_none() {
@@ -106,8 +143,8 @@ async fn update(project: Json<Project>) -> impl Responder {
 }
 
 #[delete("/delete")]
-async fn delete(project_name: String) -> impl Responder {
-    let res = delete_file(&project_name).await;
+async fn delete(project_name: String, queue: Data<Arc<FileTaskQueue>>) -> impl Responder {
+    let res = execute_task!(queue, DeleteConfig, DeleteReturn, project_name);
     if res.is_err() {
         let err = get_err!(res);
         if err.is_none() {
@@ -126,8 +163,8 @@ async fn delete(project_name: String) -> impl Responder {
 }
 
 #[get("/exists")]
-async fn exists(project_name: String) -> impl Responder {
-    let res = read_file(&project_name).await;
+async fn exists(project_name: String, queue: Data<Arc<FileTaskQueue>>) -> impl Responder {
+    let res = execute_task!(queue, ReadConfig, ReadReturn, project_name);
     if res.is_err() {
         let err = get_err!(res);
         if err.is_none() {
