@@ -1,12 +1,12 @@
 use std::mem::take;
-
+use tokio::sync::oneshot::Sender;
 use anyhow::Result;
 use senvy_common::types::{Project, ProjectEntry};
-use tokio::sync::oneshot::Sender;
+
 use crate::files::{create, read, update, delete};
 
-// TODO: avoid cloning, borrowed values (rc)?
-
+/// each file task corresponds to an action on the project entry
+/// every enum variant holds arguments for calling the actions
 pub enum FileTask {
     CreateConfig(u128, Project),
     ReadConfig(String),
@@ -14,6 +14,7 @@ pub enum FileTask {
     DeleteConfig(String)
 }
 
+/// return type of each file task
 pub enum FileTaskReturnType{
     CreateReturn(Result<bool>),
     ReadReturn(Result<Option<ProjectEntry>>),
@@ -21,6 +22,8 @@ pub enum FileTaskReturnType{
     DeleteReturn(Result<bool>)
 }
 
+/// task to be used in queue
+/// result of executing a task is returned using the provided channel
 pub struct Task {
     task: FileTask,
     /// option giving the ability to take the sender end of the chan out of the struct
@@ -35,6 +38,7 @@ impl Task {
         }
     }
 
+    /// function that executes the action based on the task type and returns the result using the channel
     pub async fn execute(&mut self) {
         // always Some
         let chan = take(&mut self.chan).unwrap();
@@ -58,4 +62,3 @@ impl Task {
         }
     }
 }
-
