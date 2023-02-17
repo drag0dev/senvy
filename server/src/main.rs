@@ -10,8 +10,6 @@ pub mod files;
 pub mod handlers;
 pub mod queue;
 
-// TODO: worker threads stays behind in case of interrupting server
-
 const LOGGER_FORMAT: &str = "[%t] %a %s UA:%{User-Agent}i CT:%{Content-Type}i %Dms";
 
 fn main() {
@@ -44,7 +42,8 @@ fn main() {
     let job_queue_worker = job_queue.clone();
     let worker_thread = thread::spawn(move || {
         let job_queue = job_queue_worker;
-        // worker thread
+
+        // tokio runtime for the current thread beacuse the queue it self is async
         let worker_runtime = Builder::new_current_thread()
             .worker_threads(1)
             .enable_io()
@@ -91,7 +90,9 @@ fn main() {
     let server_future = server.run();
     _ = actix_runtime.block_on(server_future);
 
-    // kills the worker thread
+    // actix task will finish either by erroring or by being interrupted and at that point its safe
+    // to kill the worker thread
+    // gracefully killing worker thread via queue and waiting for worker thread to finish
     job_queue.end();
     _ = worker_thread.join();
 }

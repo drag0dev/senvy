@@ -38,5 +38,6 @@ impl FileTaskQueue {
     pub fn end(&self) {
         let mut jobs = self.jobs.lock().unwrap();
         *jobs = None;
+        self.condvar.notify_all();
     }
 }
