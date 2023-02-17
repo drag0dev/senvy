@@ -53,7 +53,7 @@ fn main() {
         let worker_runtime_handle = worker_runtime.handle();
         let worker = worker_runtime_handle.spawn(async move {
             let job_queue = job_queue;
-            while let Some(mut task) = job_queue.wait_for_job() {
+            while let Some(mut task) = job_queue.wait_for_task() {
                 (&mut task).execute().await;
             }
         });
