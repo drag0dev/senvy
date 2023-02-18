@@ -4,7 +4,7 @@ use std::{
 };
 use anyhow::{Result, Context, anyhow};
 use dotenv_parser::parse_dotenv;
-use senvy_common::types::Var;
+use senvy_common::types::{Var, ProjectEntry};
 use url::Url;
 
 /// confirm with user via stdio
@@ -62,3 +62,27 @@ pub fn get_vars(file: &str) -> Result<Vec<Var>> {
 
     Ok(vars)
 }
+
+/// writes the env vars into the given file
+pub fn write_env(data: ProjectEntry) -> Result<()> {
+    let mut file = OpenOptions::new()
+        .create(true)
+        .truncate(true)
+        .write(true)
+        .open(data.path)
+        .context("creating a file with variables")?;
+
+    let mut buff = String::new();
+    for var in data.vars{
+        buff += &var.name;
+        buff.push('=');
+        buff += &var.value;
+        buff.push('\n');
+    }
+
+    file.write_all(&buff.as_bytes())
+        .context("writing vars to the file")?;
+
+    Ok(())
+}
+

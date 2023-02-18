@@ -2,6 +2,7 @@ use std::{
     fs::{OpenOptions, remove_file},
     io::{Write, Read}
 };
+use senvy_common::types::ProjectEntry;
 use serde_derive::{Serialize, Deserialize};
 use anyhow::{Result, Context};
 use serde_json::{from_str, to_vec_pretty};

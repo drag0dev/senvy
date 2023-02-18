@@ -1,6 +1,6 @@
 use crate::{
     config::{Config, write_config, delete_config},
-    utils::{confirm, append_endpoint, get_vars}
+    utils::{confirm, append_endpoint, get_vars, write_env}
 };
 use anyhow::{Result, Context, anyhow};
 use reqwest::StatusCode;
@@ -312,11 +312,14 @@ pub async fn pull(conf: Option<Config>, name: Option<String>, remote_url: Option
         remote_url,
         last_version: entry.timestamp,
         name,
-        path: entry.path
+        path: entry.path.clone()
     };
 
     write_config(&config)?;
-    println!("Successfully pulled config");
+    println!("Successfully updated local config");
+
+    write_env(entry)?;
+    println!("Successfully updated local var file");
 
     Ok(())
 }
