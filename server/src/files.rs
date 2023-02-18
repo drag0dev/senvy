@@ -8,9 +8,6 @@ use serde_json::{
 };
 use senvy_common::types::{Project, ProjectEntry};
 
-// TODO: use atomicwrite for writing
-// TODO: use tokio async read
-
 /// prefix file names with "data/"
 macro_rules! path_prefix {
     ( $x:expr ) => {

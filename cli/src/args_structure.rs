@@ -64,7 +64,6 @@ pub enum Commands {
         remote_url: Option<String>,
     },
 
-    // TODO: implement endpoint
     #[command(about = "check if there are new env vars available")]
     Check {}
 }
