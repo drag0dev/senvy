@@ -1326,6 +1326,7 @@ dependencies = [
  "anyhow",
  "env_logger",
  "log",
+ "num_cpus",
  "senvy_common",
  "serde",
  "serde_derive",

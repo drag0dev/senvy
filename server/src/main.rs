@@ -28,6 +28,14 @@ fn main() {
         }
     };
 
+    // always give one core to the worker and the rest to the server
+    let cpus = num_cpus::get();
+    let cpus = match cpus {
+        1 => 1, // in case there is only one core, worker and server are going to share it
+        n => n-1,
+    };
+
+
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
     let json_config = web::JsonConfig::default()
@@ -82,6 +90,7 @@ fn main() {
     println!("Server running on port {}", port);
 
     let actix_runtime = Builder::new_multi_thread()
+        .worker_threads(cpus)
         .enable_all()
         .thread_name("actix-runtime")
         .build()
