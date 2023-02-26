@@ -200,16 +200,15 @@ pub async fn delete(conf: Option<Config>, name: Option<String>, remote_url: Opti
     }
 
     // take both provided information and information from config
-    let conf = conf.unwrap();
     let name = if name.is_some() {
         name.unwrap()
     } else {
-        conf.name
+        conf.as_ref().unwrap().name.to_owned()
     };
     let remote_url = if remote_url.is_some() {
         remote_url.unwrap()
     } else {
-        conf.remote_url
+        conf.as_ref().unwrap().remote_url.to_owned()
     };
 
     // send delete request
