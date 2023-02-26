@@ -2,7 +2,7 @@ use clap::{Subcommand, Parser};
 
 #[derive(Debug, Parser)]
 #[command(name = "senvy")]
-#[command(about = "cli for senvy, server thath keeps your env vars", long_about = None)]
+#[command(about = "cli for senvy, server that keeps your env vars", long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands
