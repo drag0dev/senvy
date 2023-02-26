@@ -215,7 +215,7 @@ pub async fn delete(conf: Option<Config>, name: Option<String>, remote_url: Opti
     let client = make_client!();
     let endpoint = append_endpoint(&remote_url, "delete")?;
     let res = client.delete(endpoint)
-        .body(name)
+        .body(name.clone())
         .send()
         .await
         .context("deleting project entry on the server")?;
@@ -237,12 +237,13 @@ pub async fn delete(conf: Option<Config>, name: Option<String>, remote_url: Opti
         },
     }
 
-    // deleting local config
-    let proceed = confirm("Do you want to delete local config?")?;
-
-    if proceed {
-        delete_config()?;
-        println!("Successfully deleted local config");
+    // if there is a local config and if the name of deleted entry is same as the one in config
+    if conf.is_some() && (conf.as_ref().unwrap().name == name) {
+        let proceed = confirm("Do you want to delete local config?")?;
+        if proceed {
+            delete_config()?;
+            println!("Successfully deleted local config");
+        }
     }
 
     Ok(())
